@@ -1,0 +1,23 @@
+# Virtual Environments
+venv/
+env/
+.env
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Coverage and Testing
+htmlcov/
+.coverage
+
+# Database
+*.sqlite
+*.db
+
+# IDEs
+.vscode/
+.idea/
