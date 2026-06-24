@@ -19,6 +19,7 @@ class User(SQLModel, table=True):
         back_populates="owner", 
         sa_relationship_kwargs={"foreign_keys": "Item.owner_id"}
     )
+    stripe_account_id: str | None = Field(default=None)
 
 class Item(SQLModel, table=True):
     """
@@ -38,6 +39,9 @@ class Item(SQLModel, table=True):
         back_populates="items",
         sa_relationship_kwargs={"foreign_keys": "Item.owner_id"}
     )
+    payment_status: str | None = Field(default="pending")
+    checkout_token: str | None = Field(default=None)
+    stripe_payment_id: str | None = Field(default=None)
 
 class Bid(SQLModel, table=True):
     """
