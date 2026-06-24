@@ -4,10 +4,9 @@ Provides the primary connection to the PostgreSQL database.
 """
 from typing import Generator
 from sqlmodel import Session, create_engine
-
-engine = create_engine("***REMOVED***", echo=False)
-
-def get_session() -> Generator[Session, None, None]:  # pragma: no cover
+from config import config
+engine = create_engine(config.DATABASE_URI, echo=False)
+def get_session() -> Generator[Session, None, None]:
     """
     Dependency injection function for FastAPI routes.
     Yields a database session and safely rolls back in case of an error.

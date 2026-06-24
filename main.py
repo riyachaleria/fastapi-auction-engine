@@ -4,7 +4,7 @@ Configures lifespan events, global exception handlers, and includes API routers.
 """
 from typing import AsyncGenerator
 from fastapi import FastAPI, HTTPException
-from routes import auth, items, websockets
+from routes import auth, items, websockets, payment
 from exceptions import global_exception_handler, HTTP_exception_handler
 from scheduler import scheduler
 from contextlib import asynccontextmanager
@@ -33,3 +33,4 @@ app.add_exception_handler(HTTPException, HTTP_exception_handler)
 app.include_router(auth.router)
 app.include_router(items.router)
 app.include_router(websockets.router)
+app.include_router(payment.router)

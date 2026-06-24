@@ -20,3 +20,6 @@ class config():
     ENCODING = "utf-8"
     SMTP_EMAIL = os.getenv('SMTP_EMAIL')
     SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
+
+    STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
+    STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')

@@ -21,3 +21,5 @@ htmlcov/
 # IDEs
 .vscode/
 .idea/
+stripe.exe
+socket_test.html
