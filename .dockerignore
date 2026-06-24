@@ -1,0 +1,30 @@
+# Virtual Environment
+venv/
+env/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Environment Variables
+.env
+
+# Database Files
+*.sqlite
+*.db
+
+# IDEs and OS Files
+.vscode/
+.idea/
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Testing Tools
+stripe.exe
+socket_test.html
