@@ -6,11 +6,18 @@ import pytest
 from fastapi.testclient import TestClient
 
 @pytest.fixture
-def setup_auction(client: TestClient):
+def setup_auction(client: TestClient, session):
     # 1. Signup and login
     client.post("/auth/signup", json={"username": "wsuser", "email": "ws@test.com", "password": "Password123!"})
     token_resp = client.post("/auth/login", data={"username": "wsuser", "password": "Password123!"})
     token = token_resp.json()["access_token"]
+    
+    from models import User
+    from sqlmodel import select
+    user = session.exec(select(User).where(User.username == "wsuser")).first()
+    user.stripe_account_id = "acct_test_456"
+    session.add(user)
+    session.commit()
     
     # 2. Create item
     item_resp = client.post("/items/", headers={"Authorization": f"Bearer {token}"}, json={

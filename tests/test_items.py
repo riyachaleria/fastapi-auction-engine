@@ -4,9 +4,11 @@ Verifies item creation, retrieving listings, searching, and filtering.
 """
 import pytest
 from fastapi.testclient import TestClient
+from models import User
+from sqlmodel import select
 
 @pytest.fixture
-def auth_token(client: TestClient):
+def auth_token(client: TestClient, session):
     client.post("/auth/signup", json={
         "username": "itemuser",
         "email": "item@example.com",
@@ -16,6 +18,12 @@ def auth_token(client: TestClient):
         "username": "itemuser",
         "password": "password123!"
     })
+    
+    user = session.exec(select(User).where(User.username == "itemuser")).first()
+    user.stripe_account_id = "acct_test_123"
+    session.add(user)
+    session.commit()
+        
     return response.json()["access_token"]
 
 def test_create_item(client: TestClient, auth_token: str):
@@ -44,6 +52,33 @@ def test_create_item_unauthorized(client: TestClient):
         }
     )
     assert response.status_code == 401
+
+def test_create_item_without_stripe_account(client: TestClient, session):
+    # Create user without stripe_account_id
+    client.post("/auth/signup", json={
+        "username": "nostripeuser",
+        "email": "nostripe@example.com",
+        "password": "password123!"
+    })
+    response = client.post("/auth/login", data={
+        "username": "nostripeuser",
+        "password": "password123!"
+    })
+    token = response.json()["access_token"]
+    
+    # Try to create an item
+    response = client.post(
+        "/items/",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "title": "Should Fail",
+            "description": "No Stripe Account",
+            "starting_price": 10.0,
+            "duration_minutes": 5
+        }
+    )
+    assert response.status_code == 403
+    assert response.json()["message"] == "You must complete Payment Setup before you can list an item for sale."
 
 def test_get_all_items(client: TestClient, auth_token: str):
     # Create two items to fetch
