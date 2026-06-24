@@ -57,7 +57,7 @@ def send_welcome_email(username: str, user_email: str) -> None:
     except Exception as e:
         print(f"Failed to send email: {e}")
 
-def send_auction_won_email(username: str, user_email: str, item_title: str, final_price: float) -> None:
+def send_auction_won_email(username: str, user_email: str, item_title: str, final_price: float, item_id: int, checkout_token: str) -> None:
     """
     Sends a congratulatory email to the winning bidder of an auction.
     
@@ -66,11 +66,15 @@ def send_auction_won_email(username: str, user_email: str, item_title: str, fina
         user_email (str): The winner's email address.
         item_title (str): The title of the won item.
         final_price (float): The final winning bid amount.
+        item_id (int): The ID of the item won.
+        checkout_token (str): The secure one-time token for checkout.
     """
     msg = EmailMessage()
     msg["Subject"] = f"You won the auction for {item_title}!"
     msg["To"] = user_email
     msg["From"] = config.SMTP_EMAIL
+
+    checkout_url = f"http://localhost:8000/payment/checkout/{item_id}?token={checkout_token}"
 
     email_content_plain = f"""\
     Congratulations {username}! 🎉
@@ -78,20 +82,43 @@ def send_auction_won_email(username: str, user_email: str, item_title: str, fina
     You are the highest bidder! You have officially won the auction for {item_title}.
     Your winning bid was: ${final_price}
     
-    Please log in to your account to complete your purchase.
+    Please secure your item by completing your payment using the secure link below:
+    {checkout_url}
     
     - The BidBazaar Team
     """
 
     email_content_html = f"""\
     <html>
-      <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
-        <h2 style="color: #27ae60;">Congratulations {username}! 🎉</h2>
-        <p>You are the highest bidder! You have officially won the auction for <strong>{item_title}</strong>.</p>
-        <p>Your winning bid was: <strong>${final_price}</strong></p>
-        <br>
-        <p>Please log in to your account to complete your purchase.</p>
-        <p><strong>- The BidBazaar Team</strong></p>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1a1a1a; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 30px 20px;">
+        
+        <div style="border-bottom: 1px solid #e5e5e5; padding-bottom: 20px; margin-bottom: 30px;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 600;">BidBazaar</h1>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Auction Won</p>
+        </div>
+
+        <p style="font-size: 16px;">Hi {username},</p>
+        <p style="font-size: 16px;">Congratulations! You were the highest bidder and have officially won the auction for <strong>{item_title}</strong>.</p>
+        
+        <div style="background-color: #f9f9f9; border: 1px solid #e5e5e5; border-radius: 4px; padding: 20px; margin: 30px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding-bottom: 10px; color: #666; font-size: 14px;">Winning Bid</td>
+                    <td style="padding-bottom: 10px; text-align: right; font-weight: 600; font-size: 18px;">${final_price}</td>
+                </tr>
+            </table>
+        </div>
+
+        <p style="color: #666; font-size: 14px;">Please secure your item by completing your payment using the secure checkout link below.</p>
+        
+        <div style="margin: 35px 0;">
+            <a href="{checkout_url}" style="background-color: #1a1a1a; color: white; padding: 14px 28px; text-decoration: none; border-radius: 4px; font-weight: 500; font-size: 14px; display: inline-block;">Complete Payment</a>
+        </div>
+        
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e5e5; color: #999; font-size: 12px;">
+            <p style="margin: 0;">If the button doesn't work, copy and paste this link: <br>{checkout_url}</p>
+            <p style="margin: 10px 0 0 0;">- The BidBazaar Team</p>
+        </div>
       </body>
     </html>
     """
@@ -126,23 +153,29 @@ def send_item_sold_email(seller_email: str, username: str, item_title: str, fina
     email_content_plain = f"""\
     Great news, {username}! 💰
     
-    Your auction for {item_title} has officially ended!
-    It successfully sold for a final price of: ${final_price}
+    Your auction for {item_title} has officially ended and was won with a final bid of ${final_price}!
     
-    The winner will be contacting you shortly to arrange payment.
+    We have just sent the winner a secure checkout link to process their payment. We will email you again the exact moment their payment clears so you can ship the item!
     
     - The BidBazaar Team
     """
 
     email_content_html = f"""\
     <html>
-      <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
-        <h2 style="color: #2980b9;">Great news, {username}! 💰</h2>
-        <p>Your auction for <strong>{item_title}</strong> has officially ended!</p>
-        <p>It successfully sold for a final price of: <strong>${final_price}</strong></p>
-        <br>
-        <p>The winner will be contacting you shortly to arrange payment.</p>
-        <p><strong>- The BidBazaar Team</strong></p>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1a1a1a; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 30px 20px;">
+        <div style="border-bottom: 1px solid #e5e5e5; padding-bottom: 20px; margin-bottom: 30px;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 600;">BidBazaar</h1>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Item Sold</p>
+        </div>
+        
+        <p style="font-size: 16px;">Hi {username},</p>
+        <p style="font-size: 16px;">Great news! Your auction for <strong>{item_title}</strong> has officially ended and was won with a final bid of <strong>${final_price}</strong>.</p>
+        
+        <p style="color: #666; font-size: 14px;">We have sent the winner a secure checkout link to process their payment. <strong>We will email you again the exact moment their payment clears</strong> so you can ship the item!</p>
+        
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e5e5; color: #999; font-size: 12px;">
+            <p style="margin: 0;">- The BidBazaar Team</p>
+        </div>
       </body>
     </html>
     """
@@ -155,5 +188,125 @@ def send_item_sold_email(seller_email: str, username: str, item_title: str, fina
             server.login(user=config.SMTP_EMAIL, password=config.SMTP_PASSWORD)
             server.send_message(msg)
     
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+def send_payment_receipt_email(username: str, useremail: str, item_title: str, amount_paid: float) -> None:
+    message = EmailMessage()
+    message["Subject"] = f"Receipt: Payment for {item_title}"
+    message["From"] = config.SMTP_EMAIL
+    message["To"] = useremail
+
+    email_plain_content = f"""\
+    Payment Receipt
+    
+    Hi {username},
+    
+    Your payment of ${amount_paid} for {item_title} has been securely processed.
+    
+    We have notified the seller to package and ship your item to the address you provided during checkout.
+    
+    Thank you for shopping at BidBazaar.
+    """
+
+    email_html_content = f"""\
+    <html>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1a1a1a; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 30px 20px;">
+        
+        <div style="border-bottom: 1px solid #e5e5e5; padding-bottom: 20px; margin-bottom: 30px;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 600;">BidBazaar</h1>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Payment Receipt</p>
+        </div>
+
+        <p style="font-size: 16px;">Hi {username},</p>
+        <p style="font-size: 16px;">Your payment has been successfully processed.</p>
+        
+        <div style="background-color: #f9f9f9; border: 1px solid #e5e5e5; border-radius: 4px; padding: 20px; margin: 30px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding-bottom: 10px; color: #666; font-size: 14px;">Item Purchased</td>
+                    <td style="padding-bottom: 10px; text-align: right; font-weight: 500;">{item_title}</td>
+                </tr>
+                <tr>
+                    <td style="padding-top: 10px; border-top: 1px solid #e5e5e5; color: #666; font-size: 14px;">Total Paid</td>
+                    <td style="padding-top: 10px; border-top: 1px solid #e5e5e5; text-align: right; font-weight: 600; font-size: 18px;">${amount_paid}</td>
+                </tr>
+            </table>
+        </div>
+
+        <p style="color: #666; font-size: 14px;">We have notified the seller to package and ship your item to the address you provided during checkout. You will receive it soon.</p>
+        
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e5e5; color: #999; font-size: 12px;">
+            <p style="margin: 0;">Thank you for shopping at BidBazaar.</p>
+        </div>
+      </body>
+    </html>
+    """
+
+    message.set_content(textwrap.dedent(email_plain_content))
+    message.add_alternative(email_html_content, subtype="html")
+
+    context = ssl.create_default_context()
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+            server.login(user=config.SMTP_EMAIL, password=config.SMTP_PASSWORD)
+            server.send_message(message)
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+def send_ship_item_email(seller_name: str, seller_email: str, item_title: str, buyer_address: str) -> None:
+    message = EmailMessage()
+    message["Subject"] = f"Action Required: Ship {item_title}"
+    message["From"] = config.SMTP_EMAIL
+    message["To"] = seller_email
+
+    email_plain_content = f"""\
+    Payment Cleared: Action Required
+    
+    Hi {seller_name},
+    
+    The buyer has successfully paid for {item_title}. Your payout is now secured in your Stripe account.
+    
+    Please securely package and ship the item to the following address:
+    
+    {buyer_address}
+    
+    - The BidBazaar Team
+    """
+
+    email_html_content = f"""\
+    <html>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1a1a1a; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 30px 20px;">
+        
+        <div style="border-bottom: 1px solid #e5e5e5; padding-bottom: 20px; margin-bottom: 30px;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 600;">BidBazaar</h1>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Action Required</p>
+        </div>
+
+        <p style="font-size: 16px;">Hi {seller_name},</p>
+        <p style="font-size: 16px;">The buyer has successfully paid for <strong>{item_title}</strong>. Your payout is now secured in your Stripe account.</p>
+        
+        <div style="background-color: #f9f9f9; border: 1px solid #e5e5e5; border-radius: 4px; padding: 20px; margin: 30px 0;">
+            <p style="margin: 0 0 10px 0; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Ship To:</p>
+            <p style="margin: 0; font-family: monospace; font-size: 14px; white-space: pre-line; line-height: 1.5;">{buyer_address}</p>
+        </div>
+
+        <p style="color: #666; font-size: 14px;">Please safely package and ship the item to the buyer at the address above as soon as possible.</p>
+        
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e5e5; color: #999; font-size: 12px;">
+            <p style="margin: 0;">- The BidBazaar Team</p>
+        </div>
+      </body>
+    </html>
+    """
+
+    message.set_content(textwrap.dedent(email_plain_content))
+    message.add_alternative(email_html_content, subtype="html")
+
+    context = ssl.create_default_context()
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+            server.login(user=config.SMTP_EMAIL, password=config.SMTP_PASSWORD)
+            server.send_message(message)
     except Exception as e:
         print(f"Failed to send email: {e}")
