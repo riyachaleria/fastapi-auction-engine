@@ -2,7 +2,7 @@
 Auction items endpoints.
 Provides routes for creating, viewing, and searching auction items.
 """
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends,HTTPException
 from security import get_current_user
 from sqlmodel import Session
 from database import get_session
@@ -29,6 +29,10 @@ def list_an_item(itemdata: ItemData, session: Session = Depends(get_session), us
         401 — Unauthorized (invalid/missing token)
         422 — Validation error
     """
+
+    if user.stripe_account_id is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You must complete Payment Setup before you can list an item for sale.")
+
     new_item = create_item(itemdata, session, user)
 
     return {'data' : new_item, 'message' : 'item is succesfully added'}

@@ -8,6 +8,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from sqlmodel import select, Session
 from database import engine
 from datetime import datetime, timezone
+import secrets
 
 def check_expired_auctions() -> None:
     """
@@ -21,18 +22,27 @@ def check_expired_auctions() -> None:
 
         for item in expired_items:
             item.is_active = False
-
-            session.add(item)
-
             seller = session.get(User,item.owner_id)
+
             if item.higher_bidder_id:
+                token = secrets.token_urlsafe(16)
+                item.checkout_token = token
                 winner = session.get(User,item.higher_bidder_id)
 
-                send_item_sold_email(seller_email=seller.email,username=seller.username,item_title=item.title,final_price=item.current_price)
+                send_item_sold_email(seller_email=seller.email, username=seller.username, item_title=item.title, final_price=item.current_price)
 
-                send_auction_won_email(username=winner.username,user_email=winner.email,item_title=item.title,final_price=item.current_price)
+                send_auction_won_email(
+                    username=winner.username,
+                    user_email=winner.email,
+                    item_title=item.title,
+                    final_price=item.current_price,
+                    item_id=item.id,
+                    checkout_token=token
+                )
             else:
                 print(f"Auction {item.title} ended with no bids!")
+
+            session.add(item)
 
         if expired_items:
             session.commit()
