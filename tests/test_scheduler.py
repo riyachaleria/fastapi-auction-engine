@@ -2,7 +2,6 @@
 Unit tests for the APScheduler background tasks.
 Verifies that expired auctions are properly closed and correct email notifications are triggered.
 """
-import pytest
 from sqlmodel import Session
 from datetime import datetime, timedelta, timezone
 from models import Item, User

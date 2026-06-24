@@ -1,6 +1,4 @@
-import pytest
-from unittest.mock import patch, MagicMock
-from fastapi.testclient import TestClient
+from unittest.mock import patch
 from main import app
 from security import get_current_user
 from models import User, Item
