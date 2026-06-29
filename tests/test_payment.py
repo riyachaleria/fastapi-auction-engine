@@ -2,7 +2,7 @@ from unittest.mock import patch
 from main import app
 from security import get_current_user
 from models import User, Item
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 import stripe
 
 def test_html_redirect_routes(client):
@@ -161,10 +161,91 @@ def test_webhook_signature_error(mock_construct, client):
     response = client.post("/payment/webhook", headers={"stripe-signature": "sig"}, content=b"payload")
     assert response.status_code == 400
 
+def test_refund_item_not_found(client, session):
+    """Test refunding a non-existent item."""
+    buyer = User(username="buyer", email="b@test.com", hashed_password="hash")
+    session.add(buyer)
+    session.commit()
+    
+    app.dependency_overrides[get_current_user] = lambda: buyer
+    try:
+        response = client.post("/payment/refund/999", json={"reason": "Item arrived damaged"})
+    finally:
+        app.dependency_overrides.pop(get_current_user)
+        
+    assert response.status_code == 404
+
+def test_refund_unauthorized_user(client, session):
+    """Test refunding an item where the current user is not the winning bidder."""
+    seller = User(username="seller", email="s@test.com", hashed_password="hash")
+    buyer = User(username="buyer", email="b@test.com", hashed_password="hash")
+    hacker = User(username="hacker", email="h@test.com", hashed_password="hash")
+    session.add_all([seller, buyer, hacker])
+    session.commit()
+    
+    item = Item(title="Item", description="Desc", starting_price=10.0, owner_id=seller.id, higher_bidder_id=buyer.id, end_time=datetime.now(timezone.utc))
+    session.add(item)
+    session.commit()
+
+    app.dependency_overrides[get_current_user] = lambda: hacker
+    try:
+        response = client.post(f"/payment/refund/{item.id}", json={"reason": "Item arrived damaged"})
+    finally:
+        app.dependency_overrides.pop(get_current_user)
+        
+    assert response.status_code == 403
+    assert "Only the winning bidder" in response.text
+
+def test_refund_item_not_paid(client, session):
+    """Test refunding an item that hasn't been paid for."""
+    seller = User(username="seller2", email="s2@test.com", hashed_password="hash")
+    buyer = User(username="buyer2", email="b2@test.com", hashed_password="hash")
+    session.add_all([seller, buyer])
+    session.commit()
+    
+    item = Item(title="Item2", description="Desc", starting_price=10.0, owner_id=seller.id, higher_bidder_id=buyer.id, end_time=datetime.now(timezone.utc), payment_status="unpaid")
+    session.add(item)
+    session.commit()
+
+    app.dependency_overrides[get_current_user] = lambda: buyer
+    try:
+        response = client.post(f"/payment/refund/{item.id}", json={"reason": "Changed my mind"})
+    finally:
+        app.dependency_overrides.pop(get_current_user)
+        
+    assert response.status_code == 400
+    assert "cannot be processed" in response.text
+
 @patch("services.payment_services.stripe.Refund.create")
-def test_process_refund(mock_refund):
-    from services.payment_services import process_refund
-    mock_refund.return_value.id = "re_123"
-    result = process_refund("pi_123")
-    assert result.id == "re_123"
-    mock_refund.assert_called_once_with(payment_intent="pi_123")
+@patch("services.payment_services.send_seller_refund_email")
+@patch("services.payment_services.send_buyer_refund_email")
+def test_refund_success(mock_send_buyer, mock_send_seller, mock_refund_create, client, session):
+    """Test a successful refund flow, including database updates and email dispatching."""
+    seller = User(username="seller3", email="s3@test.com", hashed_password="hash")
+    buyer = User(username="buyer3", email="b3@test.com", hashed_password="hash")
+    session.add_all([seller, buyer])
+    session.commit()
+    
+    item = Item(title="Item3", description="Desc", starting_price=10.0, owner_id=seller.id, higher_bidder_id=buyer.id, end_time=datetime.now(timezone.utc), payment_status="paid", stripe_payment_id="pi_123")
+    session.add(item)
+    session.commit()
+
+    mock_refund_create.return_value.id = "re_123"
+
+    app.dependency_overrides[get_current_user] = lambda: buyer
+    try:
+        response = client.post(f"/payment/refund/{item.id}", json={"reason": "Item not as described"})
+    finally:
+        app.dependency_overrides.pop(get_current_user)
+        
+    assert response.status_code == 200
+    assert "refund is being initiated" in response.json()["message"]
+    
+    # Verify DB update
+    session.refresh(item)
+    assert item.payment_status == "refunded"
+    
+    # Verify Mocks
+    mock_refund_create.assert_called_once_with(payment_intent="pi_123")
+    mock_send_seller.assert_called_once_with(useremail=seller.email, username=seller.username, item_title=item.title, reason="Item not as described")
+    mock_send_buyer.assert_called_once_with(username=buyer.username, useremail=buyer.email, item_title=item.title)

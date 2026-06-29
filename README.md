@@ -26,7 +26,8 @@ When facilitating peer-to-peer live auctions, platforms require a robust infrast
 - **🕒 Background Task Automation:** Integrated `APScheduler` scans for expired auctions natively via background threads, closes them, and mints secure one-time checkout tokens.
 - **💳 Stripe Connect Integration:** End-to-end checkout automation capturing a 5% platform fee and transferring 95% of the funds securely to the seller. Webhooks automatically finalize the transaction.
 - **🔐 Secure Authentication Layer:** JWT-based stateless authentication with strict password complexity requirements and bcrypt hashing.
-- **📧 Transactional SMTP Emails:** Automated notifications for welcome messages, winning bids, and payment receipts (with elegant HTML fallbacks).
+- **📧 Transactional SMTP Emails:** Automated notifications for welcome messages, winning bids, payment receipts, and automated refund processing (with elegant HTML fallbacks).
+- **💸 Refund Automation:** Seamless API integration allowing verified buyers to initiate full refunds, which automatically reverses Stripe payment intents, updates the database, and notifies all parties.
 - **🗄️ Enterprise Database Models:** Backed by `PostgreSQL` and `SQLModel` with strong foreign-key enforcement and strict `Pydantic` payload sanitization.
 
 ## 🛠️ Tech Stack
@@ -175,6 +176,7 @@ stripe listen --forward-to localhost:8000/payment/webhook
 | **POST** | `/payment/onboard` | Generate a Stripe Express onboarding link for sellers |
 | **GET** | `/payment/checkout/{item_id}?token=` | Validate secure token and redirect to Stripe Checkout |
 | **POST** | `/payment/webhook` | Listen for Stripe asynchronous events |
+| **POST** | `/payment/refund/{item_id}` | Initiate an automated refund for a purchased item |
 
 ---
 
