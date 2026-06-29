@@ -310,3 +310,133 @@ def send_ship_item_email(seller_name: str, seller_email: str, item_title: str, b
             server.send_message(message)
     except Exception as e:
         print(f"Failed to send email: {e}")
+
+def send_seller_refund_email(username: str, useremail: str, item_title: str, reason: str) -> None:
+    """
+    Sends an email to the seller notifying them that the buyer has requested a refund.
+    
+    Args:
+        username (str): The seller's username.
+        useremail (str): The seller's email address.
+        item_title (str): The title of the refunded item.
+        reason (str): The reason provided by the buyer for the refund.
+    """
+    msg = EmailMessage()
+    msg["Subject"] = f"Refund Requested: {item_title}"
+    msg["To"] = useremail
+    msg["From"] = config.SMTP_EMAIL
+
+    email_plain_content = f"""\
+    Refund Requested
+    
+    Hi {username},
+    
+    The buyer has requested a refund for {item_title} and it is currently being processed. 
+    They have been instructed to ship the item back to you.
+    
+    Reason provided by the buyer:
+    "{reason}"
+    
+    - The BidBazaar Team
+    """
+
+    email_html_content = f"""\
+    <html>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1a1a1a; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 30px 20px;">
+        
+        <div style="border-bottom: 1px solid #e5e5e5; padding-bottom: 20px; margin-bottom: 30px;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 600;">BidBazaar</h1>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Refund Requested</p>
+        </div>
+
+        <p style="font-size: 16px;">Hi {username},</p>
+        <p style="font-size: 16px;">The buyer has requested a refund for <strong>{item_title}</strong> and the transaction is being reversed. They have been instructed to package and ship the item back to you.</p>
+        
+        <div style="background-color: #fff3f3; border: 1px solid #ffcaca; border-radius: 4px; padding: 20px; margin: 30px 0;">
+            <p style="margin: 0 0 10px 0; color: #d63031; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Reason for Refund:</p>
+            <p style="margin: 0; font-family: sans-serif; font-size: 14px; font-style: italic; line-height: 1.5;">"{reason}"</p>
+        </div>
+        
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e5e5; color: #999; font-size: 12px;">
+            <p style="margin: 0;">- The BidBazaar Team</p>
+        </div>
+      </body>
+    </html>
+    """
+
+    msg.set_content(textwrap.dedent(email_plain_content))
+    msg.add_alternative(email_html_content, subtype="html")
+
+    context = ssl.create_default_context()
+
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+            server.login(user=config.SMTP_EMAIL, password=config.SMTP_PASSWORD)
+            server.send_message(msg)
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+
+def send_buyer_refund_email(username: str, useremail: str, item_title: str) -> None:
+    """
+    Sends a confirmation email to the buyer acknowledging their refund request.
+    
+    Args:
+        username (str): The buyer's username.
+        useremail (str): The buyer's email address.
+        item_title (str): The title of the refunded item.
+    """
+    msg = EmailMessage()
+    msg["Subject"] = f"Refund Processing: {item_title}"
+    msg["To"] = useremail
+    msg["From"] = config.SMTP_EMAIL
+
+    email_plain_content = f"""\
+    Refund Processing Initiated
+    
+    Hi {username},
+    
+    We have successfully initiated the refund for {item_title}. 
+    The funds will be returned to your original payment method within 24 hours.
+    
+    Please safely package and ship the item back to the seller as soon as possible.
+    
+    - The BidBazaar Team
+    """
+
+    email_html_content = f"""\
+    <html>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1a1a1a; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 30px 20px;">
+        
+        <div style="border-bottom: 1px solid #e5e5e5; padding-bottom: 20px; margin-bottom: 30px;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 600;">BidBazaar</h1>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Refund Processing</p>
+        </div>
+
+        <p style="font-size: 16px;">Hi {username},</p>
+        <p style="font-size: 16px;">We have successfully initiated the refund for <strong>{item_title}</strong>.</p>
+        <p style="font-size: 16px;">The funds will be returned to your original payment method within <strong>24 hours</strong>.</p>
+        
+        <div style="background-color: #f9f9f9; border: 1px solid #e5e5e5; border-radius: 4px; padding: 20px; margin: 30px 0;">
+            <p style="margin: 0 0 10px 0; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Action Required:</p>
+            <p style="margin: 0; font-family: sans-serif; font-size: 14px; line-height: 1.5;">Please safely package and ship the item back to the seller as soon as possible.</p>
+        </div>
+        
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e5e5; color: #999; font-size: 12px;">
+            <p style="margin: 0;">- The BidBazaar Team</p>
+        </div>
+      </body>
+    </html>
+    """
+
+    msg.set_content(textwrap.dedent(email_plain_content))
+    msg.add_alternative(email_html_content, subtype="html")
+
+    context = ssl.create_default_context()
+    
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+            server.login(user=config.SMTP_EMAIL, password=config.SMTP_PASSWORD)
+            server.send_message(msg)
+    except Exception as e:
+        print(f"Failed to send email: {e}")
