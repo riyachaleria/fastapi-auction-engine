@@ -9,6 +9,7 @@ from models import User, Item
 from services.payment_services import create_onboarding_link, create_connected_account, create_checkout_session, process_refund, get_webhook
 from database import get_session
 from sqlmodel import Session
+from schema import RefundRequest
 
 router = APIRouter(prefix="/payment", tags=["payment"])
 
@@ -23,7 +24,7 @@ def get_user_onboard(user_db: User = Depends(get_current_user), session: Session
     """
     if user_db.stripe_account_id is None:
         user_db.stripe_account_id = create_connected_account(user=user_db)
-        session.add(user_db)
+        session.add(user_db)    
         session.commit()
 
     onboarding_url = create_onboarding_link(user_db.stripe_account_id)
@@ -103,3 +104,36 @@ def checkout_cancel() -> str:
     Callback URL for cancelled Stripe Checkout.
     """
     return "<html><body style='font-family: Arial; text-align: center; padding: 50px;'><h1>❌ Payment Cancelled</h1><p>You cancelled the checkout. You can safely close this tab.</p></body></html>"
+
+@router.post("/refund/{item_id}", status_code=status.HTTP_200_OK)
+def get_refund_process(item_id: int, refund_request: RefundRequest, user_db: User = Depends(get_current_user), session: Session = Depends(get_session)) -> dict:
+    """
+    Initiate a refund for a purchased item.
+    Requires a valid JWT Bearer token from the winning bidder.
+
+    Path Parameters:
+        item_id : int — The ID of the item being refunded.
+
+    Request body (JSON):
+        reason : RefundReason — The reason for the refund (e.g., Damaged).
+
+    Returns:
+        200 — Refund successfully initiated.
+        400 — Bad request (item not paid or already refunded).
+        403 — Forbidden (user is not the winning bidder).
+        404 — Item not found.
+    """
+    item_db = session.get(Item, item_id)
+
+    if not item_db:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+
+    if user_db.id != item_db.higher_bidder_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the winning bidder can request a refund for this item.")
+    
+    if item_db.payment_status != "paid":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A refund cannot be processed for this item at this time.")
+
+    stripe_id = process_refund(user_db,item_db,refund_request,session,item_db.stripe_payment_id)    
+
+    return {"message" : f"refund is being initiated for item id {item_db.id}"}

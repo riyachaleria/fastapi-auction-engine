@@ -7,7 +7,7 @@ from config import config
 from models import Item, User
 from sqlmodel import Session
 from fastapi import Request, HTTPException, status
-from services.email_services import send_payment_receipt_email, send_ship_item_email
+from services.email_services import send_payment_receipt_email, send_ship_item_email,send_buyer_refund_email,send_seller_refund_email
 
 stripe.api_key = config.STRIPE_SECRET_KEY
 webhook_secret = config.STRIPE_WEBHOOK_SECRET
@@ -83,17 +83,44 @@ def create_checkout_session(item: Item) -> str:
 
     return session.url
 
-def process_refund(payment_id: str) -> stripe.Refund:
+def process_refund(user_db: User, item_db: Item, refund_request, session: Session, payment_id: str) -> stripe.Refund:
     """
-    Processes a full refund for a specific payment intent.
+    Executes the complete refund flow for a returned item.
+    Reverses the Stripe payment intent, updates the local database state,
+    and dispatches notification emails to both the buyer and seller.
     
     Args:
+        user_db (User): The buyer requesting the refund.
+        item_db (Item): The auction item being refunded.
+        refund_request (RefundRequest): The payload containing the refund reason.
+        session (Session): The database session.
         payment_id (str): The Stripe Payment Intent ID.
         
     Returns:
         stripe.Refund: The generated Stripe Refund object.
     """
+    
     stripe_response = stripe.Refund.create(payment_intent=payment_id)
+    
+    item_db.payment_status = "refunded"
+    session.add(item_db)
+    session.commit()
+
+    seller = session.get(User, item_db.owner_id)
+
+    send_seller_refund_email(
+        useremail=seller.email,
+        username=seller.username,
+        item_title=item_db.title,
+        reason=refund_request.reason.value
+    )
+
+    send_buyer_refund_email(
+        username=user_db.username,
+        useremail=user_db.email,
+        item_title=item_db.title
+    )
+
     return stripe_response
 
 async def get_webhook(request: Request, session: Session) -> None:
@@ -152,4 +179,4 @@ async def get_webhook(request: Request, session: Session) -> None:
             buyer_address=formatted_address
         )
 
-        session.commit()
+        session.commit()
