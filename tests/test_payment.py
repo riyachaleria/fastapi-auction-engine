@@ -35,7 +35,7 @@ def test_onboard_new_account(mock_create_link, mock_create_account, client, sess
         
     assert response.status_code == 201
     assert response.json() == {"onboarding_link": "https://stripe.com/onboard"}
-    assert mock_create_account.called
+    mock_create_account.assert_called_once()
 
 @patch("services.payment_services.stripe.AccountLink.create")
 def test_onboard_existing_account(mock_create_link, client, session):
@@ -137,8 +137,8 @@ def test_webhook_success(mock_construct, client, session):
     session.refresh(item)
     assert item.payment_status == "paid"
     assert item.stripe_payment_id == "pi_123"
-    assert mock_receipt.called
-    assert mock_ship.called
+    mock_receipt.assert_called_once()
+    mock_ship.assert_called_once()
 
 @patch("services.payment_services.stripe.Webhook.construct_event")
 def test_webhook_unhandled_event(mock_construct, client):

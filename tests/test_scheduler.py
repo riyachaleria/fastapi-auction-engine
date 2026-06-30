@@ -37,8 +37,8 @@ def test_check_expired_auctions(session: Session, mock_emails):
     assert item.is_active == False
     
     # Check if emails were triggered!
-    assert mock_sold.called
-    assert mock_won.called
+    mock_sold.assert_called_once()
+    mock_won.assert_called_once()
 
 def test_check_expired_auctions_no_bids(session: Session, mock_emails):
     mock_welcome, mock_won, mock_sold = mock_emails
@@ -70,5 +70,5 @@ def test_check_expired_auctions_no_bids(session: Session, mock_emails):
     assert item.is_active == False
     
     # Emails should NOT be called
-    assert not mock_sold.called
-    assert not mock_won.called
+    mock_sold.assert_not_called()
+    mock_won.assert_not_called()
