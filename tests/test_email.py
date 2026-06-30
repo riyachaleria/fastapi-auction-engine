@@ -3,7 +3,15 @@ Unit tests for email notification services.
 Verifies SMTP integration and exception handling without sending actual emails.
 """
 from unittest.mock import patch, ANY
-from services.email_services import send_welcome_email, send_auction_won_email, send_item_sold_email, send_payment_receipt_email, send_ship_item_email, send_seller_refund_email, send_buyer_refund_email
+from services.email_services import (
+    send_welcome_email, 
+    send_auction_won_email, 
+    send_item_sold_email, 
+    send_payment_receipt_email, 
+    send_ship_item_email,
+    send_seller_refund_email,
+    send_buyer_refund_email
+)
 
 @patch("services.email_services.smtplib.SMTP_SSL")
 def test_send_welcome_email_success(mock_smtp):
@@ -78,6 +86,7 @@ def test_send_ship_item_email_failure(mock_smtp):
     mock_smtp.side_effect = Exception("SMTP Connection Failed")
     send_ship_item_email("SellerBob", "seller@test.com", "Vintage Rolex", "123 Main St")
 
+
 @patch("services.email_services.smtplib.SMTP_SSL")
 def test_send_seller_refund_email_success(mock_smtp):
     send_seller_refund_email("seller", "seller@example.com", "Rolex", "Damaged")
@@ -87,11 +96,13 @@ def test_send_seller_refund_email_success(mock_smtp):
 
 @patch("services.email_services.smtplib.SMTP_SSL")
 def test_send_seller_refund_email_failure(mock_smtp):
+
     mock_smtp.side_effect = Exception("SMTP Connection Failed")
     send_seller_refund_email("seller", "seller@example.com", "Rolex", "Damaged")
 
 @patch("services.email_services.smtplib.SMTP_SSL")
 def test_send_buyer_refund_email_success(mock_smtp):
+
     send_buyer_refund_email("buyer", "buyer@example.com", "Rolex")
     mock_smtp.assert_called_once()
     mock_server = mock_smtp.return_value.__enter__.return_value
@@ -99,5 +110,6 @@ def test_send_buyer_refund_email_success(mock_smtp):
 
 @patch("services.email_services.smtplib.SMTP_SSL")
 def test_send_buyer_refund_email_failure(mock_smtp):
+
     mock_smtp.side_effect = Exception("SMTP Connection Failed")
     send_buyer_refund_email("buyer", "buyer@example.com", "Rolex")
