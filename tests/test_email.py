@@ -96,13 +96,11 @@ def test_send_seller_refund_email_success(mock_smtp):
 
 @patch("services.email_services.smtplib.SMTP_SSL")
 def test_send_seller_refund_email_failure(mock_smtp):
-
     mock_smtp.side_effect = Exception("SMTP Connection Failed")
     send_seller_refund_email("seller", "seller@example.com", "Rolex", "Damaged")
 
 @patch("services.email_services.smtplib.SMTP_SSL")
 def test_send_buyer_refund_email_success(mock_smtp):
-
     send_buyer_refund_email("buyer", "buyer@example.com", "Rolex")
     mock_smtp.assert_called_once()
     mock_server = mock_smtp.return_value.__enter__.return_value
@@ -110,6 +108,5 @@ def test_send_buyer_refund_email_success(mock_smtp):
 
 @patch("services.email_services.smtplib.SMTP_SSL")
 def test_send_buyer_refund_email_failure(mock_smtp):
-
     mock_smtp.side_effect = Exception("SMTP Connection Failed")
     send_buyer_refund_email("buyer", "buyer@example.com", "Rolex")
