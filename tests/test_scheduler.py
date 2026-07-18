@@ -8,7 +8,7 @@ from models import Item, User
 from scheduler import check_expired_auctions
 
 def test_check_expired_auctions(session: Session, mock_emails):
-    mock_welcome, mock_won, mock_sold = mock_emails
+    mock_welcome, mock_won, mock_sold, *_ = mock_emails
     
     # Create fake user
     seller = User(username="scheduler_seller", email="seller@test.com", hashed_password="pwd")
@@ -41,7 +41,7 @@ def test_check_expired_auctions(session: Session, mock_emails):
     mock_won.assert_called_once()
 
 def test_check_expired_auctions_no_bids(session: Session, mock_emails):
-    mock_welcome, mock_won, mock_sold = mock_emails
+    mock_welcome, mock_won, mock_sold, *_ = mock_emails
     
     # Reset mocks from previous tests
     mock_won.reset_mock()

@@ -58,8 +58,9 @@ def mock_emails():
     """
     with patch("routes.auth.send_welcome_email") as mock_welcome, \
          patch("scheduler.send_auction_won_email") as mock_won, \
-         patch("scheduler.send_item_sold_email") as mock_sold:
-        yield mock_welcome, mock_won, mock_sold
+         patch("scheduler.send_item_sold_email") as mock_sold, \
+         patch("routes.auth.send_otp_email_via_brevo") as mock_otp:
+        yield mock_welcome, mock_won, mock_sold, mock_otp
 
 @pytest.fixture(autouse=True)
 def mock_db_engines():
