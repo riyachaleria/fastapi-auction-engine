@@ -2,6 +2,7 @@
 venv/
 env/
 .env
+.env.local
 
 # Python Cache
 __pycache__/
@@ -13,13 +14,24 @@ __pycache__/
 # Coverage and Testing
 htmlcov/
 .coverage
+.coverage.*
+*.coverage
+*.log
 
 # Database
 *.sqlite
 *.db
+*.sqlite3
 
-# IDEs
+# IDEs & System
 .vscode/
 .idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Miscellaneous Tools
 stripe.exe
 socket_test.html
+scratch/
