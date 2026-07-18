@@ -50,3 +50,50 @@ class RefundRequest(BaseModel):
         reason (RefundReason): The reason selected by the buyer.
     """
     reason: RefundReason
+
+class RefreshTokenRequest(BaseModel):
+    """
+    Schema for validating incoming refresh token payloads during session refreshing or logout.
+    
+    Attributes:
+        refresh_token (str): The raw JWT refresh token string.
+    """
+    refresh_token: str
+
+class ForgetPasswordRequest(BaseModel):
+    """
+    Schema for initiating a password recovery request.
+    
+    Attributes:
+        email (str): The registered user's email address.
+    """
+    email: str
+
+class VerifyOTPRequest(BaseModel):
+    """
+    Schema for validating the 6-digit verification code received via email.
+    
+    Attributes:
+        email (str): The user's email address.
+        otp (int): The numeric 6-digit one-time password code.
+    """
+    email: str
+    otp: int
+
+class ResetPasswordRequest(BaseModel):
+    """
+    Schema for setting a new account password after successful verification.
+    
+    Attributes:
+        new_password (str): The chosen replacement password meeting security requirements.
+        reset_token (str): The short-lived JWT authorization token issued after OTP verification.
+    """
+    new_password: str = Field(json_schema_extra={"strip_whitespace": True})
+    reset_token: str
+
+    @field_validator("new_password")
+    @classmethod
+    def valid_password(cls, value: str) -> str:
+        if not re.match(r"^(?=.*[0-9])(?=.*[!@#$%^&*]).{8,}$", value):
+            raise ValueError("Password must have at least 8 characters, one number, and one special character.")
+        return value
