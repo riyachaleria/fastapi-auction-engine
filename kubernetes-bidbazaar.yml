@@ -1,0 +1,179 @@
+# =========================================
+# 1. SECRETS (Database Credentials)
+# =========================================
+apiVersion: v1
+kind: Secret
+metadata: 
+  name: bidbazaar-secrets
+type: Opaque
+stringData:
+  database: "2030"
+
+---
+
+# =========================================
+# 2. DATABASE (StatefulSet & PVC Blueprint)
+# =========================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: bidbazaar-db
+spec:
+  selector:
+    matchLabels:
+      app: bidbazaar-db
+  serviceName: "bidbazaar-db-service"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: bidbazaar-db
+    spec:
+      containers:
+      - name: postgres-container
+        image: postgres:15-alpine
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+        ports:
+        - containerPort: 5432
+          name: postgres
+        volumeMounts:
+        - name: db-pantry
+          mountPath: /var/lib/postgresql/data
+        env:
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_DB
+          value: "bidbazaar_db"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: bidbazaar-secrets
+              key: database
+  volumeClaimTemplates:
+  - metadata:
+      name: db-pantry
+    spec:
+      accessModes: 
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 2Gi
+
+---
+
+# =========================================
+# 3. DATABASE SERVICE (Internal DNS)
+# =========================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: bidbazaar-db-service
+spec:
+  type: ClusterIP
+  selector: 
+    app: bidbazaar-db
+  ports:
+    - port: 5432
+      targetPort: "postgres"
+
+---
+
+# =========================================
+# 4. BACKEND (FastAPI Deployment)
+# =========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bidbazaar-api
+spec:
+  selector:
+    matchLabels:
+      app: bidbazaar-api
+  template:
+    metadata:
+      labels:
+        app: bidbazaar-api
+    spec:
+      containers:
+      - name: api-container
+        image: riyachaleria/bidbazaar-api:latest
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "250m"
+            memory: "256Mi"
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://postgres:2030@bidbazaar-db-service:5432/bidbazaar_db"
+        command: ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"]
+
+---
+
+# =========================================
+# 5. BACKEND SERVICE (Internal DNS)
+# =========================================
+apiVersion: v1
+kind: Service
+metadata: 
+  name: bidbazaar-api-service
+spec:
+  type: ClusterIP
+  selector:
+    app: bidbazaar-api
+  ports:
+    - port: 80
+      targetPort: 8000
+
+---
+# =========================================
+# 6. AUTO-SCALER (HPA for FastAPI)
+# =========================================
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: 
+  name: bidbazaar-api-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: bidbazaar-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+---
+# =========================================
+# 7. INGRESS (External Routing)
+# =========================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bidbazaar-ingress
+spec:
+  rules:
+    - host: api.bidbazaar.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: 
+                name: bidbazaar-api-service
+                port:
+                  number: 80

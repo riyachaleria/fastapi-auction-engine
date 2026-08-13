@@ -45,8 +45,9 @@ When facilitating peer-to-peer live auctions, platforms require an impenetrable,
 
 ## 🛠️ Tech Stack
 
-- **Framework**: FastAPI (Python 3.10+)
-- **Database**: PostgreSQL
+- **Framework & Server**: FastAPI (Python 3.10+) & Uvicorn (ASGI)
+- **Real-Time Engine**: WebSockets (Bi-Directional Streaming)
+- **Database & Migrations**: PostgreSQL & Alembic
 - **ORM & Data Layer**: SQLModel / SQLAlchemy 2.0+
 - **Payment Processing**: Stripe API & Webhooks
 - **Email Delivery Engines**: Brevo API (HTTP REST) & Transactional SMTP (`httpx`, `smtplib`)
@@ -54,7 +55,7 @@ When facilitating peer-to-peer live auctions, platforms require an impenetrable,
 - **Authentication & Security**: Python-JOSE (`JWT`), Passlib (`bcrypt`), UUIDv4 Token Tracking
 - **Testing & Quality Assurance**: `pytest`, `pytest-cov`, `FastAPI TestClient`, `SQLite` In-Memory Fixtures
 - **Environment Management**: `python-dotenv`
-- **Containerization**: Docker & Docker Compose
+- **Containerization & Orchestration**: Docker, Docker Compose, & Kubernetes (StatefulSets, HPA, Ingress)
 
 ---
 
@@ -78,7 +79,8 @@ BidBazaar/
 ├── .gitignore                 # Excludes Virtual Environments, Cache, and Secrets from Git
 ├── requirements.txt           # Complete UTF-8 Pinned Dependencies
 ├── Dockerfile                 # Multi-Stage Container Blueprint for the API Server
-├── docker-compose.yml         # Container Orchestration (FastAPI Server + PostgreSQL Database)
+├── docker-compose.yml         # Local Development Container Orchestration
+├── kubernetes-bidbazaar.yml   # Production Kubernetes Cluster Architecture (StatefulSet, HPA, Ingress)
 ├── alembic.ini                # Alembic Migration Configuration
 │
 ├── alembic/                   # Database Migration Scripts & Metadata
@@ -116,7 +118,16 @@ BidBazaar/
 
 ## 🔧 Installation & Setup
 
-### 🐳 Quick Start (Using Docker - Recommended)
+### ☸️ Production Architecture (Kubernetes)
+BidBazaar is orchestrated for enterprise Kubernetes environments, featuring a PostgreSQL StatefulSet, Horizontal Pod Autoscaling (HPA) for the FastAPI backend, and Ingress routing.
+To deploy the entire cluster architecture locally via Minikube or Docker Desktop:
+```bash
+kubectl apply -f kubernetes-bidbazaar.yml
+```
+
+---
+
+### 🐳 Development Setup (Docker Compose)
 The fastest and most reliable way to run the platform locally without installing PostgreSQL directly on your host machine.
 
 1. **Clone the Repository**
@@ -233,6 +244,7 @@ BidBazaar enforces uniform, standardized JSON error payloads (`{"error": true, "
 ## 👨‍💻 About This Project
 
 ### Key Learnings & Engineering Highlights
+- **Cloud-Native Kubernetes Orchestration:** Architecting a production-ready Kubernetes cluster featuring PostgreSQL StatefulSets with persistent volume claims (PVCs), Horizontal Pod Autoscalers (HPA) for traffic-based scaling, and Ingress controllers for clean, prefix-based API routing.
 - **Enterprise Security Architecture:** Designing zero-trust authentication workflows where stateless JWT access tokens are protected by stateful database-tracked refresh tokens (`jti`), allowing instant session termination (`/auth/logout` and `/auth/logout-all`) while maintaining high performance.
 - **Transactional API Integration:** Combining `httpx` asynchronous REST calls with Brevo API to guarantee high-deliverability 6-digit OTP delivery for self-service account recovery.
 - **Automated Memory & DB Hygiene:** Using `APScheduler` background threads (`clean_expired_auth_data`) to prevent database bloat by continuously pruning expired OTP records and revoked tokens without impacting API request response times.
