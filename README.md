@@ -120,6 +120,10 @@ BidBazaar/
 
 ### ☸️ Production Architecture (Kubernetes)
 BidBazaar is orchestrated for enterprise Kubernetes environments, featuring a PostgreSQL StatefulSet, Horizontal Pod Autoscaling (HPA) for the FastAPI backend, and Ingress routing.
+
+**⚠️ Important Security Step:** 
+Before applying the architecture, open `kubernetes-bidbazaar.yml` and replace the `<YOUR_SECURE_PASSWORD>` placeholders in the `Secret` object (lines 10-11) with a strong, secure database password. 
+
 To deploy the entire cluster architecture locally via Minikube or Docker Desktop:
 ```bash
 kubectl apply -f kubernetes-bidbazaar.yml

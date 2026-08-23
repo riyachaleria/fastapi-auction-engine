@@ -7,7 +7,8 @@ metadata:
   name: bidbazaar-secrets
 type: Opaque
 stringData:
-  database: "<YOUR_SECURE_PASSWORD>"
+  database_password: "<YOUR_SECURE_PASSWORD>"
+  database_url: "postgresql://postgres:<YOUR_SECURE_PASSWORD>@bidbazaar-db-service:5432/bidbazaar_db"
 
 ---
 
@@ -54,7 +55,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: bidbazaar-secrets
-              key: database
+              key: database_password
   volumeClaimTemplates:
   - metadata:
       name: db-pantry
@@ -114,7 +115,10 @@ spec:
         - containerPort: 8000
         env:
         - name: DATABASE_URL
-          value: "postgresql://postgres:<YOUR_SECURE_PASSWORD>@bidbazaar-db-service:5432/bidbazaar_db"
+          valueFrom:
+            secretKeyRef:
+              name: bidbazaar-secrets
+              key: database_url
         command: ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"]
 
 ---
